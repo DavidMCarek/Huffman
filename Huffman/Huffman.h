@@ -13,11 +13,15 @@ private:
 	struct HuffmanNode
 	{
 		int weight = 0;
-		char value;
+		unsigned char value;
 		HuffmanNode* leftChild = nullptr;
 		HuffmanNode* rightChild = nullptr;
 	};
-	bool nodesNeedMerging(HuffmanNode* nodes[]);
-	HuffmanNode* getMinNode(HuffmanNode* nodes[]);
+	bool nodesNeedMerging(HuffmanNode* nodes[256]);
+	HuffmanNode* getMinNode(HuffmanNode* nodes[256]);
+	std::string binaryPaths[256];
+	void setEncodingStrings(HuffmanNode* node);
+	void traverse(HuffmanNode* node);
+	std::string currentPath;
 };
 

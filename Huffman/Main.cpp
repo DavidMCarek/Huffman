@@ -10,7 +10,7 @@ using namespace std;
 int main()
 {
 	Huffman huffman;
-	huffman.intializeFromFile("");
+	huffman.intializeFromFile("C:\\Shakespeare.txt");
 
     return 0;
 }
