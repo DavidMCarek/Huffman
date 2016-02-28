@@ -17,11 +17,15 @@ private:
 		HuffmanNode* leftChild = nullptr;
 		HuffmanNode* rightChild = nullptr;
 	};
+	HuffmanNode* root;
 	bool nodesNeedMerging(HuffmanNode* nodes[256]);
 	HuffmanNode* getMinNode(HuffmanNode* nodes[256]);
 	std::string binaryPaths[256];
 	void setEncodingStrings(HuffmanNode* node);
 	void traverse(HuffmanNode* node);
 	std::string currentPath;
+	std::string getPaddingBits(int numberOfBitsNeeded);
+	int bytesRead;
+	int bytesEncoded;
 };
 
