@@ -324,8 +324,7 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 		
 			for (int i = 8; i > 0; i--)
 			{
-				char test = nextUChar >> (i - 1);
-				if (test == 1)
+				if ((nextUChar >> (i - 1)) == 1)
 					bitString.append("1");
 				else
 					bitString.append("0");
