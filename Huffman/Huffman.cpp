@@ -39,6 +39,8 @@ void Huffman::intializeFromFile(std::string fileName)
 		bytesRead++;
 	}
 
+	inputStream.close();
+
 	// while there are still nodes to be grouped get the two smallest and create a root for the 
 	// subtree and set the pointers for that roots children
 	// then set that root to an empty slot in the array
@@ -189,7 +191,7 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 		else
 		{
 			byte = 0;
-			for (int i = 8; i > 1; i--)
+			for (int i = 8; i > 0; i--)
 			{
 				byte = byte << 1;
 				if (bitsToWrite.front() == '1')
@@ -218,6 +220,7 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 		bytesEncoded++;
 	}
 
+	inputStream.close();
 	outputStream.close();
 
 	time_t endTime = time(0);
@@ -239,3 +242,56 @@ std::string Huffman::getPaddingBits(int numberOfBitsNeeded)
 
 	return "";
 }
+
+void Huffman::decodeFile(std::string inFile, std::string outFile)
+{
+	std::fstream inputStream(inFile, std::fstream::in);
+	std::ofstream outputStream;
+	outputStream.open(outFile);
+	unsigned char nextChar;
+	HuffmanNode* node = root;
+	std::string bitString = "";
+	time_t startTime = time(0);
+
+	while (!inputStream.eof() || bitString.length() != 0)
+	{
+		if (bitString.length() == 0)
+		{
+			inputStream >> std::noskipws >> nextChar;
+		
+			for (int i = 8; i > 0; i--)
+			{
+				if (nextChar >> (i - 1) == 1)
+					bitString.append("1");
+				else
+					bitString.append("0");
+
+				nextChar = nextChar << (9 - i);
+				nextChar = nextChar >> (9 - i);
+			}
+
+		}
+		
+		if (node->leftChild == nullptr && node->rightChild == nullptr)
+		{
+			outputStream.put(node->value);
+			node = root;
+		}
+
+		if (bitString.front() == '0')
+			node = node->leftChild;
+		else
+			node = node->rightChild;
+
+		bitString.erase(bitString.begin());
+		
+	}
+
+	inputStream.close();
+	outputStream.close();
+
+	time_t endTime = time(0);
+	std::cout << "Elapsed Decoding Time: " << endTime - startTime << " s" << std::endl;
+
+}
+

@@ -15,12 +15,11 @@ int main()
 	Huffman huffman;
 
 	huffman.intializeFromFile(inputFilePath + ".txt");
-	huffman.encodeFile(inputFilePath + ".txt", inputFilePath + ".enc");
-	//huffman.decodeFile(inputFilePath + ".enc", inputFilePath + ".dec");
+	//huffman.encodeFile(inputFilePath + ".txt", inputFilePath + ".enc");
+	huffman.decodeFile(inputFilePath + ".enc", inputFilePath + ".dec");
 
 	cout << "Processing finished. Press ENTER to exit" << endl;
 	cin.get(waitChar);
 
     return 0;
 }
-
