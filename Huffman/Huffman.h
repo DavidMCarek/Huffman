@@ -25,7 +25,5 @@ private:
 	void traverse(HuffmanNode* node);
 	std::string currentPath;
 	std::string getPaddingBits(int numberOfBitsNeeded);
-	int bytesRead;
-	int bytesEncoded;
 };
 

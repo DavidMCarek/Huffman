@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <xtgmath.h>
 #include <ctime>
 
@@ -19,7 +20,7 @@ Huffman::~Huffman()
 void Huffman::intializeFromFile(std::string fileName)
 {
 	time_t startTime = time(0);
-	bytesRead = 0;
+	int bytesRead = 0;
 	HuffmanNode* nodes[256] = {};
 
 	// initialize all nodes of the array
@@ -30,11 +31,21 @@ void Huffman::intializeFromFile(std::string fileName)
 	}
 
 	char nextChar;
-	std::fstream inputStream(fileName, std::fstream::in);
-	// get all characters from file not skipping white space
-	// since every character is one byte increment bytes read for every char read
-	while (inputStream >> std::noskipws >> nextChar) 
+	std::ifstream inputStream;
+	inputStream.open(fileName, std::ios::binary);
+
+	if (inputStream.fail())
 	{
+		std::cout << "Could not open initalization file" << std::endl;
+		return;
+	}
+
+	// get all characters from file and since every character is one byte increment bytes 
+	// read for every char read
+	while (inputStream.get(nextChar)) 
+	{
+		if (inputStream.eof())
+			break;
 		nodes[nextChar]->weight++;
 		bytesRead++;
 	}
@@ -175,29 +186,42 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 	std::ofstream outputStream;
 	outputStream.open(outputFile);
 	char nextChar;
-	std::fstream inputStream(inputFile, std::fstream::in);
+	std::ifstream inputStream;
+	inputStream.open(inputFile, std::ios::binary);
+
+	if (inputStream.fail())
+		return;
+	
+
 	std::string bitsToWrite = "";
 	std::string nextByte = "";
-	char byte;
+	unsigned char byte;
 
-	bytesEncoded = 0;
+	int bytesEncoded = 0;
+	int bytesRead = 0;
 
 	// while there are still characters left in the input file to get continue getting them
 	// and converting them to binary to add to the output file
-	while (!inputStream.eof())
+	while (true)
 	{
 		// if the number of bits to write is less than 8 we need to get the next character so that we can 
 		// write at least one byte in the upcoming loop
 		if (bitsToWrite.length() < 8)
 		{
-			inputStream >> std::noskipws >> nextChar;
-			bitsToWrite.append(binaryPaths[nextChar]);
-		}
+			inputStream.get(nextChar);
 
-		// we need to handle the case where we are at the end of the file and we need padding bits for the last byte
-		if ((bitsToWrite.length() < 8) && (inputStream.eof()))
-		{
-			bitsToWrite.append(getPaddingBits(8 - bitsToWrite.length()));
+			if (inputStream.eof())
+			{
+				// we need to handle the case where we are at the end of the file and we need padding bits for the last byte
+				if (bitsToWrite.length() > 0)
+					bitsToWrite.append(getPaddingBits(8 - bitsToWrite.length()));
+				else break;
+			}
+			else
+			{
+				bitsToWrite.append(binaryPaths[nextChar]);
+				bytesRead++;
+			}
 		}
 
 		// if we have 8 or more bits we can write a char to the file so we need to iterate through the bits to 
@@ -260,32 +284,54 @@ std::string Huffman::getPaddingBits(int numberOfBitsNeeded)
 // takes a huffman encoded file and turns it into the original input text
 void Huffman::decodeFile(std::string inFile, std::string outFile)
 {
-	std::fstream inputStream(inFile, std::fstream::in);
+	std::ifstream inputStream;
+	inputStream.open(inFile, std::ios::binary);
+
+	if (inputStream.fail())
+	{
+		std::cout << "Could not open encoded file" << std::endl;
+		return;
+	}
+
 	std::ofstream outputStream;
 	outputStream.open(outFile);
-	unsigned char nextChar;
+	unsigned char nextUChar;
+	char nextChar;
 	HuffmanNode* node = root;
 	std::string bitString = "";
 	time_t startTime = time(0);
 	int bytesDecoded = 0;
+	int bytesRead = 0;
 	int lineNumber = 1;
 	int col = 1;
 
-	while (!inputStream.eof())
+	// while there are still characters to read in
+	// if the bit string is empty get the next char from the input file and turn it into a
+	// bit string to be added to the bit string
+	// then use the bit string to traverse the tree until a node is reached
+	// output that nodes value to the output file
+	while (true)
 	{
 		if (bitString.length() == 0)
 		{
-			inputStream >> std::noskipws >> nextChar;
+			inputStream.get(nextChar);
+			if (inputStream.eof())
+				break;
+
+			nextUChar = (unsigned char)nextChar;
+
+			bytesRead++;
 		
 			for (int i = 8; i > 0; i--)
 			{
-				if (nextChar >> (i - 1) == 1)
+				char test = nextUChar >> (i - 1);
+				if (test == 1)
 					bitString.append("1");
 				else
 					bitString.append("0");
 
-				nextChar = nextChar << (9 - i);
-				nextChar = nextChar >> (9 - i);
+				nextUChar = nextUChar << (9 - i);
+				nextUChar = nextUChar >> (9 - i);
 			}
 
 		}
@@ -313,6 +359,8 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 
 	time_t endTime = time(0);
 	std::cout << "Elapsed Decoding Time: " << endTime - startTime << " s" << std::endl;
+	std::cout << "Bytes Read: " << bytesRead << std::endl;
+	std::cout << "Bytes Decoded: " << bytesDecoded << std::endl;
 
 }
 
