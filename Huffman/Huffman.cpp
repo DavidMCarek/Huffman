@@ -353,7 +353,6 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 	unsigned char nextUChar;
 	char nextChar;
 	HuffmanNode* node = root;
-	std::string bitString = "";
 	int bytesDecoded = 0;
 	int bytesRead = 0;
 
@@ -379,20 +378,13 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 		{
 			// shift the unsigned char to the right i - 1 times to isolate a single bit
 			// this works because after every check the bit gets set to a 0 from the shifting 5 lines below
-			if ((nextUChar >> (i - 1)) == 1)
-				bitString.append("1");
+			// if the value of the shifted char is 0 set node to its left child else set node to the right child
+			if ((nextUChar >> (i - 1)) == 0)
+				node = node->leftChild;
 			else
-				bitString.append("0");
+				node = node->rightChild;
 
-			// these shifts clear the most recently checked bit of the char
-			nextUChar = nextUChar << (9 - i);
-			nextUChar = nextUChar >> (9 - i);
-		}
-
-		// while there are bits left in the bitString continue traversing down the tree until a leaf is reached
-		// when the leaf is reached write its value to the output file and reset the node to the root
-		while (bitString.length() != 0)
-		{
+			// if we arrived at a leaf write that leafs value to the outut file and reset the node
 			if (node->leftChild == nullptr && node->rightChild == nullptr)
 			{
 				outputStream.put(node->value);
@@ -400,13 +392,9 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 				bytesDecoded++;
 			}
 
-			if (bitString.front() == '0')
-				node = node->leftChild;
-			else
-				node = node->rightChild;
-
-			// remove the first char in the string since it has been checked
-			bitString.erase(bitString.begin());
+			// these shifts clear the most recently checked bit of the char
+			nextUChar = nextUChar << (9 - i);
+			nextUChar = nextUChar >> (9 - i);
 		}
 	}
 
