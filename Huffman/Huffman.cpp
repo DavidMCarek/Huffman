@@ -17,20 +17,25 @@ Huffman::~Huffman()
 {
 }
 
-// set up the tree and encoding strings
+// set up the tree and encoding strings given the path to a file
 void Huffman::intializeFromFile(std::string fileName)
 {
+	initFinished = false;
+
+	// we need to make sure that the file that the user entered is valid
 	std::ifstream inputStream;
 	inputStream.open(fileName, std::ios::binary);
 
+	// if we couldn't open the file, let the user know and return
 	if (inputStream.fail())
 	{
-		std::cout << "Could not open initalization file" << std::endl;
+		std::cout << "Could not open file for initalization" << std::endl;
 		return;
 	}
 	
 	std::cout << "Initializing..." << std::endl;
 
+	// start and end time are needed to keep track of elapsed time
 	std::chrono::time_point<std::chrono::system_clock> start, end;
 	start = std::chrono::system_clock::now();
 
@@ -50,16 +55,18 @@ void Huffman::intializeFromFile(std::string fileName)
 	// read for every char read
 	while (inputStream.get(nextChar)) 
 	{
+		// if we reached the end of the file stop trying to get more characters
 		if (inputStream.eof())
 			break;
+
 		nodes[nextChar]->weight++;
 		bytesRead++;
 	}
 
 	inputStream.close();
 
-	// while there are still nodes to be grouped get the two smallest and create a root for the 
-	// subtree and set the pointers for that roots children
+	// while there are still nodes to be grouped get the two smallest and create a root for the subtree and set
+	// the pointers for that roots children
 	// then set that root to an empty slot in the array (the getMinNode method will free up slots in the array)
 	while (nodesNeedMerging(nodes))
 	{
@@ -81,6 +88,8 @@ void Huffman::intializeFromFile(std::string fileName)
 		}
 	}
 
+	// now the only node left in the array will be in the 0th position and it is the root
+	// of the huffman tree
 	root = nodes[0];
 
 	// tree is now built, create encoding strings
@@ -93,9 +102,10 @@ void Huffman::intializeFromFile(std::string fileName)
 	std::cout << "Bytes read: " << bytesRead << std::endl;
 	printf("Elapsed Initialization Time: %.3f s\n", elapsed_seconds.count());
 	std::cout << "Finished Initializing" << std::endl << std::endl;
+	initFinished = true;
 }
 
-// create the paths to the leaves
+// create the bit string paths to the leaves
 void Huffman::setEncodingStrings(HuffmanNode* node)
 {
 	// clear the current path and initialize the array to hold encoding strings
@@ -105,7 +115,7 @@ void Huffman::setEncodingStrings(HuffmanNode* node)
 	traverse(node);
 }
 
-// recurse through the tree to create encoding strings
+// recurse through the tree until every leaf is reached to create the encoding strings
 void Huffman::traverse(HuffmanNode* node)
 {
 	// if for some reason we pass a null node in we cant proceed
@@ -139,7 +149,7 @@ void Huffman::traverse(HuffmanNode* node)
 
 }
 
-// lets us know when there is only one root left
+// lets us know when there is only one node left in the array which is the root of the tree
 bool Huffman::nodesNeedMerging(HuffmanNode* nodes[256])
 {
 	// if more than 1 node is left in the array then we need to continue merging
@@ -167,13 +177,17 @@ Huffman::HuffmanNode* Huffman::getMinNode(HuffmanNode* nodes[256])
 	// one with the lowest weight
 	for (int i = 0; i < 256; i++)
 	{
+		// if the current slot in the array is null skip it
 		if (nodes[i] == nullptr)
 			continue;
+		// if no smallest node has been declared the current node will become the smallest
 		if (smallestWeightNode == nullptr)
 		{
 			smallestWeightNode = nodes[i];
 			locationOfSmallestNode = i;
 		}
+		// else if the current nodes weight is less than the weight of the smallest weight node
+		// it then becomes the new smallest weight node
 		else if (smallestWeightNode->weight > nodes[i]->weight)
 		{
 			smallestWeightNode = nodes[i];
@@ -181,7 +195,8 @@ Huffman::HuffmanNode* Huffman::getMinNode(HuffmanNode* nodes[256])
 		}
 	}
 
-	// remove the node being returned from the array
+	// remove the node being returned from the array to free up space for the resulting root
+	// of the subtree that will be created from 2 min weight nodes
 	nodes[locationOfSmallestNode] = nullptr;
 
 	return smallestWeightNode;
@@ -190,17 +205,26 @@ Huffman::HuffmanNode* Huffman::getMinNode(HuffmanNode* nodes[256])
 // encodes the input file based on the table of string paths
 void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 {
+	// we need to make sure that the init method has run all the way through before encoding
+	if (!initFinished)
+	{
+		std::cout << "Cannot run encode, initialization failed" << std::endl;
+		return;
+	}
+
 	std::ifstream inputStream;
 	inputStream.open(inputFile, std::ios::binary);
 
+	// we can't open the text file we can't continue
 	if (inputStream.fail())
 	{
-		std::cout << "Could not open encoding file" << std::endl;
+		std::cout << "Could not open file for encoding" << std::endl;
 		return;
 	}
 
 	std::cout << "Encoding..." << std::endl;
 
+	// create start and end times for elapsed time
 	std::chrono::time_point<std::chrono::system_clock> start, end;
 	start = std::chrono::system_clock::now();
 
@@ -215,22 +239,24 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 
 	char nextChar;
 
-	// while there are still characters left in the input file to get continue getting them
-	// and converting them to binary to add to the output file
+	// while there are still characters left in the input file continue getting them
+	// and converting them to encoded bytes to add to the output file
 	while (true)
-	{
-		// if the number of bits to write is less than 8 we need to get the next character so that we can 
-		// write at least one byte in the upcoming loop
-		
+	{	
 		inputStream.get(nextChar);
 
+		// if the end of file has been reached we have 2 cases:
+		// 1 : the number of bits left in bitsToWrite is 0 so we do not have to add padding bits
+		// 2 : the number of bits left in bitsToWrite is some positive integer so we have to get padding bits to write
+		//     out a full byte to the output file
 		if (inputStream.eof())
 		{
-			// we need to handle the case where we are at the end of the file and we need padding bits for the last byte
 			if (bitsToWrite.length() > 0)
 				bitsToWrite.append(getPaddingBits(8 - bitsToWrite.length()));
 			else break;
 		}
+		// if we are not at the end of the file we need to append the bit string for the character from the input
+		// to bitsToWrite
 		else
 		{
 			bitsToWrite.append(binaryPaths[nextChar]);
@@ -251,16 +277,15 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 				byte = byte << 1;
 
 				// if the next bit is a one we add one to the byte
-				// this bit will be shifted to the correct position once the loop finishes
 				if (bitsToWrite.front() == '1')
 					byte++;
 
 				// when the bit has been added to the byte remove it from the bits to write string as it
-				// will be written when the loop finishes
+				// will be written to the file when the loop finishes
 				bitsToWrite.erase(bitsToWrite.begin());
 			}
 
-			// write the generated byte to the output file and increment bytes written
+			// write the generated byte to the output file
 			outputStream.put(byte);
 			bytesEncoded++;
 		}
@@ -275,13 +300,14 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 
 	std::chrono::duration<double> elapsed_seconds = end - start;
 
-	// then calculate elapsed time and file compression
+	// then calculate elapsed time and file compression etc.
 	std::cout << "Bytes Read: " << bytesRead << std::endl;
 	std::cout << "Bytes Encoded: " << bytesEncoded << std::endl;
 	double compression = (double)bytesEncoded / bytesRead;
 
 	printf("Compression Level: %.3f\n", compression);
-	printf("Elapsed Initialization Time: %.3f s\n", elapsed_seconds.count());
+	printf("Elapsed Encoding Time: %.3f s\n", elapsed_seconds.count());
+	std::cout << "Finished Encoding" << std::endl << std::endl;
 }
 
 // gets the prefix bits of a node so that the end bits of a file are padded
@@ -301,14 +327,27 @@ std::string Huffman::getPaddingBits(int numberOfBitsNeeded)
 // takes a huffman encoded file and turns it into the original input text
 void Huffman::decodeFile(std::string inFile, std::string outFile)
 {
+	// we can't continue if the initialize has not been run
+	if (!initFinished)
+	{
+		std::cout << "Cannot run decode, initialization failed" << std::endl;
+		return;
+	}
+
 	std::ifstream inputStream;
 	inputStream.open(inFile, std::ios::binary);
 
+	// we can't continue if the encoded file can't be opened
 	if (inputStream.fail())
 	{
 		std::cout << "Could not open encoded file" << std::endl;
 		return;
 	}
+
+	std::cout << "Decoding..." << std::endl;
+
+	std::chrono::time_point<std::chrono::system_clock> start, end;
+	start = std::chrono::system_clock::now();
 
 	std::ofstream outputStream;
 	outputStream.open(outFile, std::ios::binary);
@@ -316,36 +355,43 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 	char nextChar;
 	HuffmanNode* node = root;
 	std::string bitString = "";
-	time_t startTime = time(0);
 	int bytesDecoded = 0;
 	int bytesRead = 0;
 
-	// while there are still characters to read in
-	// if the bit string is empty get the next char from the input file and turn it into a
-	// bit string to be added to the bit string
+	// while there are still characters to read get the next char from the input file and 
+	// turn it into a bit string to be added to bitString
 	// then use the bit string to traverse the tree until a node is reached
 	// output that nodes value to the output file
 	while (true)
 	{
 		inputStream.get(nextChar);
+		// if we reached the end of the file we have no more characters to decode
 		if (inputStream.eof())
 			break;
 
+		// convert the signed char into an unsigned one 
+		// this is required for the shifting to work correctly
 		nextUChar = (unsigned char)nextChar;
 
 		bytesRead++;
 		
+		// iterate 8 times to convert and append the byte to a bit string
 		for (int i = 8; i > 0; i--)
 		{
+			// shift the unsigned char to the right i - 1 times to isolate a single bit
+			// this works because after every check the bit gets set to a 0 from the shifting 5 lines below
 			if ((nextUChar >> (i - 1)) == 1)
 				bitString.append("1");
 			else
 				bitString.append("0");
 
+			// these shifts clear the most recently checked bit of the char
 			nextUChar = nextUChar << (9 - i);
 			nextUChar = nextUChar >> (9 - i);
 		}
 
+		// while there are bits left in the bitString continue traversing down the tree until a leaf is reached
+		// when the leaf is reached write its value to the output file and reset the node to the root
 		while (bitString.length() != 0)
 		{
 			if (node->leftChild == nullptr && node->rightChild == nullptr)
@@ -360,6 +406,7 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 			else
 				node = node->rightChild;
 
+			// remove the first char in the string since it has been checked
 			bitString.erase(bitString.begin());
 		}
 	}
@@ -367,10 +414,14 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 	inputStream.close();
 	outputStream.close();
 
-	time_t endTime = time(0);
-	std::cout << "Elapsed Decoding Time: " << endTime - startTime << " s" << std::endl;
+	end = std::chrono::system_clock::now();
+
+	std::chrono::duration<double> elapsed_seconds = end - start;
+
 	std::cout << "Bytes Read: " << bytesRead << std::endl;
 	std::cout << "Bytes Decoded: " << bytesDecoded << std::endl;
 
+	printf("Elapsed Encoding Time: %.3f s\n", elapsed_seconds.count());
+	std::cout << "Finished Decoding" << std::endl << std::endl;
 }
 
