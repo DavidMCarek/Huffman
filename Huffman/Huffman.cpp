@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
-#include <xtgmath.h>
 #include <chrono>
 #include <stdio.h>
 
