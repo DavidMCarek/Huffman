@@ -184,7 +184,7 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 {
 	time_t startTime = time(0);
 	std::ofstream outputStream;
-	outputStream.open(outputFile);
+	outputStream.open(outputFile, std::ios::binary);
 	char nextChar;
 	std::ifstream inputStream;
 	inputStream.open(inputFile, std::ios::binary);
@@ -206,23 +206,22 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 	{
 		// if the number of bits to write is less than 8 we need to get the next character so that we can 
 		// write at least one byte in the upcoming loop
-		if (bitsToWrite.length() < 8)
-		{
-			inputStream.get(nextChar);
+		
+		inputStream.get(nextChar);
 
-			if (inputStream.eof())
-			{
-				// we need to handle the case where we are at the end of the file and we need padding bits for the last byte
-				if (bitsToWrite.length() > 0)
-					bitsToWrite.append(getPaddingBits(8 - bitsToWrite.length()));
-				else break;
-			}
-			else
-			{
-				bitsToWrite.append(binaryPaths[nextChar]);
-				bytesRead++;
-			}
+		if (inputStream.eof())
+		{
+			// we need to handle the case where we are at the end of the file and we need padding bits for the last byte
+			if (bitsToWrite.length() > 0)
+				bitsToWrite.append(getPaddingBits(8 - bitsToWrite.length()));
+			else break;
 		}
+		else
+		{
+			bitsToWrite.append(binaryPaths[nextChar]);
+			bytesRead++;
+		}
+		
 
 		// if we have 8 or more bits we can write a char to the file so we need to iterate through the bits to 
 		// create the byte that needs to be written
@@ -260,6 +259,7 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 	time_t endTime = time(0);
 
 	// then calculate elapsed time and file compression
+	std::cout << "Bytes Read: " << bytesRead << std::endl;
 	std::cout << "Bytes Encoded: " << bytesEncoded << std::endl;
 	int compression = (double)bytesEncoded / bytesRead * 100;
 
@@ -302,8 +302,6 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 	time_t startTime = time(0);
 	int bytesDecoded = 0;
 	int bytesRead = 0;
-	int lineNumber = 1;
-	int col = 1;
 
 	// while there are still characters to read in
 	// if the bit string is empty get the next char from the input file and turn it into a

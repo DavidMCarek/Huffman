@@ -15,7 +15,7 @@ int main()
 	Huffman huffman;
 
 	huffman.intializeFromFile(inputFilePath + ".txt");
-	//huffman.encodeFile(inputFilePath + ".txt", inputFilePath + ".enc");
+	huffman.encodeFile(inputFilePath + ".txt", inputFilePath + ".enc");
 	huffman.decodeFile(inputFilePath + ".enc", inputFilePath + ".dec");
 
 	cout << "Processing finished. Press ENTER to exit" << endl;
