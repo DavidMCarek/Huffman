@@ -5,7 +5,8 @@
 #include <iostream>
 #include <iomanip>
 #include <xtgmath.h>
-#include <ctime>
+#include <chrono>
+#include <stdio.h>
 
 Huffman::Huffman()
 {
@@ -19,8 +20,20 @@ Huffman::~Huffman()
 // set up the tree and encoding strings
 void Huffman::intializeFromFile(std::string fileName)
 {
-	time_t startTime = time(0);
-	int bytesRead = 0;
+	std::ifstream inputStream;
+	inputStream.open(fileName, std::ios::binary);
+
+	if (inputStream.fail())
+	{
+		std::cout << "Could not open initalization file" << std::endl;
+		return;
+	}
+	
+	std::cout << "Initializing..." << std::endl;
+
+	std::chrono::time_point<std::chrono::system_clock> start, end;
+	start = std::chrono::system_clock::now();
+
 	HuffmanNode* nodes[256] = {};
 
 	// initialize all nodes of the array
@@ -30,15 +43,8 @@ void Huffman::intializeFromFile(std::string fileName)
 		nodes[i]->value = i;
 	}
 
+	int bytesRead = 0;
 	char nextChar;
-	std::ifstream inputStream;
-	inputStream.open(fileName, std::ios::binary);
-
-	if (inputStream.fail())
-	{
-		std::cout << "Could not open initalization file" << std::endl;
-		return;
-	}
 
 	// get all characters from file and since every character is one byte increment bytes 
 	// read for every char read
@@ -81,10 +87,12 @@ void Huffman::intializeFromFile(std::string fileName)
 	// we only need the first node of the array to be passed since it is the root
 	setEncodingStrings(root);
 
-	time_t finishTime = time(0);
+	end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
 
 	std::cout << "Bytes read: " << bytesRead << std::endl;
-	std::cout << "Elapsed Initialization Time: " << finishTime - startTime << " s" << std::endl;
+	printf("Elapsed Initialization Time: %.3f s\n", elapsed_seconds.count());
+	std::cout << "Finished Initializing" << std::endl << std::endl;
 }
 
 // create the paths to the leaves
@@ -182,23 +190,30 @@ Huffman::HuffmanNode* Huffman::getMinNode(HuffmanNode* nodes[256])
 // encodes the input file based on the table of string paths
 void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 {
-	time_t startTime = time(0);
-	std::ofstream outputStream;
-	outputStream.open(outputFile, std::ios::binary);
-	char nextChar;
 	std::ifstream inputStream;
 	inputStream.open(inputFile, std::ios::binary);
 
 	if (inputStream.fail())
+	{
+		std::cout << "Could not open encoding file" << std::endl;
 		return;
-	
+	}
+
+	std::cout << "Encoding..." << std::endl;
+
+	std::chrono::time_point<std::chrono::system_clock> start, end;
+	start = std::chrono::system_clock::now();
+
+	std::ofstream outputStream;
+	outputStream.open(outputFile, std::ios::binary);
 
 	std::string bitsToWrite = "";
-	std::string nextByte = "";
 	unsigned char byte;
 
 	int bytesEncoded = 0;
 	int bytesRead = 0;
+
+	char nextChar;
 
 	// while there are still characters left in the input file to get continue getting them
 	// and converting them to binary to add to the output file
@@ -256,15 +271,17 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 	inputStream.close();
 	outputStream.close();
 
-	time_t endTime = time(0);
+	end = std::chrono::system_clock::now();
+
+	std::chrono::duration<double> elapsed_seconds = end - start;
 
 	// then calculate elapsed time and file compression
 	std::cout << "Bytes Read: " << bytesRead << std::endl;
 	std::cout << "Bytes Encoded: " << bytesEncoded << std::endl;
-	int compression = (double)bytesEncoded / bytesRead * 100;
+	double compression = (double)bytesEncoded / bytesRead;
 
-	std::cout << "Compression: " << compression << "%" << std::endl;
-	std::cout << "Elapsed Encoding Time: " << endTime - startTime << " s" << std::endl;
+	printf("Compression Level: %.3f\n", compression);
+	printf("Elapsed Initialization Time: %.3f s\n", elapsed_seconds.count());
 }
 
 // gets the prefix bits of a node so that the end bits of a file are padded
@@ -294,7 +311,7 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 	}
 
 	std::ofstream outputStream;
-	outputStream.open(outFile);
+	outputStream.open(outFile, std::ios::binary);
 	unsigned char nextUChar;
 	char nextChar;
 	HuffmanNode* node = root;
@@ -310,27 +327,23 @@ void Huffman::decodeFile(std::string inFile, std::string outFile)
 	// output that nodes value to the output file
 	while (true)
 	{
-		if (bitString.length() == 0)
-		{
-			inputStream.get(nextChar);
-			if (inputStream.eof())
-				break;
+		inputStream.get(nextChar);
+		if (inputStream.eof())
+			break;
 
-			nextUChar = (unsigned char)nextChar;
+		nextUChar = (unsigned char)nextChar;
 
-			bytesRead++;
+		bytesRead++;
 		
-			for (int i = 8; i > 0; i--)
-			{
-				if ((nextUChar >> (i - 1)) == 1)
-					bitString.append("1");
-				else
-					bitString.append("0");
+		for (int i = 8; i > 0; i--)
+		{
+			if ((nextUChar >> (i - 1)) == 1)
+				bitString.append("1");
+			else
+				bitString.append("0");
 
-				nextUChar = nextUChar << (9 - i);
-				nextUChar = nextUChar >> (9 - i);
-			}
-
+			nextUChar = nextUChar << (9 - i);
+			nextUChar = nextUChar >> (9 - i);
 		}
 
 		while (bitString.length() != 0)
