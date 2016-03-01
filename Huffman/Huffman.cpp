@@ -303,9 +303,10 @@ void Huffman::encodeFile(std::string inputFile, std::string outputFile)
 	// then calculate elapsed time and file compression etc.
 	std::cout << "Bytes Read: " << bytesRead << std::endl;
 	std::cout << "Bytes Encoded: " << bytesEncoded << std::endl;
-	double compression = (double)bytesEncoded / bytesRead;
+	double compression = ((double)bytesEncoded / bytesRead) * 100;
 
-	printf("Compression Level: %.3f\n", compression);
+	printf("Compression Level: %.2f", compression);
+	std::cout << "%" << std::endl;
 	printf("Elapsed Encoding Time: %.3f s\n", elapsed_seconds.count());
 	std::cout << "Finished Encoding" << std::endl << std::endl;
 }
